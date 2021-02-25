@@ -52,15 +52,17 @@ public class EmployeeFactoryImpl implements EmployeeFactory{
   }
 }
 ```
-
+---
 
 ### 서술적인 이름을 사용하라!
 > 코드를 읽으면서 짐작했던 기능을 각 루틴이 그대로 수행한다면 깨끗한 코드다.
 * 이름은 길어도 괜찮다. 길고 서술적인 이름이 짧고 어려운 이름보다 좋다.
 * 서술적인 이름을 사용하면 개발자 머릿속에서도 설계가 뚜렷해지므로 코드를 개선하기 쉬워진다.
+---
 
 ### 함수 인수
 * 함수에서 이상적인 인수 개수는 0개이다. 3개는 가능한 피하는 편이 좋고, 4개 이상은 특별한 이유가 필요하다.
+---
 
 ### 명령과 조회를 분리하라.
 * 함수는 뭔가를 수행하거나 뭔가에 답하거나 둘 중 하나만 해야 한다. 둘 다 하면 안 된다. 예를 들어 다음 함수를 살펴보자.
@@ -81,6 +83,67 @@ if(attributeExists("username")){
   ...
 }
 ```
+---
+### 오류 코드보다 예외를 사용해라!
+* 명령 함수에서 오류 코드를 반환하는 방식은 명령/조회 분리 규칙을 미묘하게 위반한다. 자칫하면 if문에서 명령을 표현식으로 사용하기 쉬운 탓이다.
+```java
+if (deletePage(page) == E_OK)
+```
+* 위 코드는 동사/형용사 혼란을 일으키지 않는 대신 여러 단계로 중첩되는 코드를 야기한다. 오류 코드를 반환하면 호출자는 오류 코드를 곧바로 처리해야 한다는 문제에 부딪힌다.
+```java
+if (deletePage(page) == E_OK){
+    if(registry.deleteReference(page.name) == E_OK){
+        if(configKeys.deleteKey(page.name.makekey()) == E_OK){
+            logger.log("page deleted!");
+        }else{
+            logger.log("configKey not deleted");
+        }
+    }else{
+        logger.log("deleteReference from registry failed");
+    }
+}else{
+    logger.log("delete failed");
+    return E_ERROR;
+}
+```
+* **반면 오류 코드 대신 예외를 사용하면 오류 처리 코드가 원래 코드에서 분리되므로 코드가 깔끔해진다.**
+```java
+try{
+  deletePage(page);
+  registry.deleteReference(page.name);
+  configKeys.deleteKey(page.name.makeKey());
+}
+catch (Exception e){
+  logger.log(e.getMessage());
+}
+```
+
+#### Try/Catch 블록 뽑아내기
+* try/catch 블록은 추하다. 코드 구조에 혼란을 일으키며, 정상 동작과 오류 처리 동작을 뒤섞는다. 그러므로 try/catch 블록을 별도 함수로 뽑아내는 편이 좋다.
+```java
+public void delete(Page page){
+  try{
+    deletePageAndAllReferences(page);
+  }
+  catch(Exception e){
+    logError(e);
+  }
+}
+
+private void deletePageAndAllReferences(Page page) throws Exception{
+  deletePage(page);
+  registry.deleteReference(page.name);
+  ConfigKeys.deleteKey(page.name.makeKey());
+}
+
+private void logError(Exception e){
+  logger.log(e.getMessage());
+}
+```
+* 위에서 delete 함수는 모든 오류를 처리한다. 그래서 코드를 이해하기 쉽다. 한 번 훑어보고 넘어갈 정도로 충분하다. 실제로 페이지를 제거하는 함수는 deletePageAndAllReferences다. deletePageAndAllReferences 함수는 예외를 처리하지 않는다. 이렇게 정상 동작과 오류 처리 동작을 분리하면 코드를 이해하고 수정하기 쉬워진다.
 
 
-  
+## 마치면서
+_함수를 짤 때 처음에는 길고  복잡하다. 들여쓰기 단계도 많고 중복된 루프도 많다. 인수 목록도 아주 길다. 이름은 즉흥적이고 코드는 중복된다. 하지만 그 다음에 코드를 다듬고, 함수를 만들고, 이름을 바꾸고, 중복을 제거해야 한다. 메서드를 줄이고 순서를 바꾸기도 한다. 때로는 전체 클래스를 쪼개기도 한다._
+* 함수를 깨끗하게 만드는 것은 쉽지 않다. 나도 항상 한 가지 일을 하는 함수를 만든다고는 하지만 그 안에서 여러가지 명령과 조회를 하고 있고, 조회를 하고 다른 값을 리턴해버리기도 한다. try/catch보다는 반복되는 조건문을 이용해 상황을 처리하기만 했었는데, 이번 장을 보면서 깨끗한 함수를 만드는 것이 얼마나 중요한지 조금이나마 알게 되었다.
+* 책에 있는 내용을 100% 다 정리하지는 않았다. 지금 상황에서 이해하기 어려운 부분이나 적용해보기 어려울 것 같은 부분은 제외했다. 이런 부분은 나중에 기회가 되면 다시 봐야겠다.
