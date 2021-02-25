@@ -53,4 +53,34 @@ public class EmployeeFactoryImpl implements EmployeeFactory{
 }
 ```
 
+
+### 서술적인 이름을 사용하라!
+> 코드를 읽으면서 짐작했던 기능을 각 루틴이 그대로 수행한다면 깨끗한 코드다.
+* 이름은 길어도 괜찮다. 길고 서술적인 이름이 짧고 어려운 이름보다 좋다.
+* 서술적인 이름을 사용하면 개발자 머릿속에서도 설계가 뚜렷해지므로 코드를 개선하기 쉬워진다.
+
+### 함수 인수
+* 함수에서 이상적인 인수 개수는 0개이다. 3개는 가능한 피하는 편이 좋고, 4개 이상은 특별한 이유가 필요하다.
+
+### 명령과 조회를 분리하라.
+* 함수는 뭔가를 수행하거나 뭔가에 답하거나 둘 중 하나만 해야 한다. 둘 다 하면 안 된다. 예를 들어 다음 함수를 살펴보자.
+```java
+public boolean set(String attribute, String value);
+```
+* 이 함수는 이름이 attribute인 속성을 찾아 값을 value로 설정한 후 성공하면 true를 반환하고 실패하면 false를 반환한다. 그래서 다음과 같이 괴상한 코드를 유발할 수 있다.
+```java
+if set("username", "unclebob")) ...
+```
+* 독자 입장에서 코드를 읽어보자. 무슨 뜻일까?
+*   - "username"이 "unclebob"으로 설정되어 있는지 확인하는 코드인가?
+*   -  "username"을 "unclebob"으로 설정하는 코드인가? 
+* 함수를 호출하는 코드만 봐서는 의미가 모호하다. 함수를 구현한 개발자는 "set"을 동사로 의도했지만, if문에 넣고 보면 형용사로 느껴진다. set이라는 함수 이름을 setAndCheckIfExists라고 바꾸는 방법도 있지만  if문에 넣고 보면 여전히 어색하다. 진짜 해결책은 명령과 조회를 분리해 혼란을 애초에 뿌리뽑는 것이다.
+```java
+if(attributeExists("username")){
+  setAttribute("username", "unclebob");
+  ...
+}
+```
+
+
   
